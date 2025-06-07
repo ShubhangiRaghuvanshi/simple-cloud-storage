@@ -55,36 +55,217 @@ cd src
 node index.js
 ```
 
-## API Endpoints
+## API Documentation
 
 ### Authentication
 - `POST /api/auth/register` - Register a new user
 - `POST /api/auth/login` - Login user
 - `GET /api/auth/profile` - Get user profile
 
-### Files
-- `GET /api/files` - List files and directories
-- `POST /api/files/upload` - Upload a file
-- `GET /api/files/download` - Download a file
-- `DELETE /api/files` - Delete a file
-- `POST /api/files/directories` - Create a directory
+### File Operations
 
-### File Versions
-- `GET /api/files/versions` - Get file versions
-- `GET /api/files/versions/:version` - Get specific version
-- `POST /api/files/versions/:version/rollback` - Rollback to version
-- `DELETE /api/files/versions/:version` - Delete version
+#### Create Directory
+```http
+POST /api/files/directories
+Content-Type: application/json
+Authorization: Bearer <token>
 
-### Permissions
-- `POST /api/permissions/set` - Set file permissions
-- `GET /api/permissions` - Get file permissions
-- `DELETE /api/permissions` - Remove access
-- `GET /api/permissions/shared` - Get shared items
+{
+    "path": "parent/directory",
+    "name": "new-directory"
+}
+```
 
-### Metadata
-- `GET /api/files/metadata` - Get file metadata
-- `PUT /api/files/metadata` - Update file metadata
-- `GET /api/files/search` - Search files by metadata
+#### Upload File
+```http
+POST /api/files/upload
+Content-Type: multipart/form-data
+Authorization: Bearer <token>
+
+Form Data:
+- file: <file>
+- path: "target/directory"
+```
+
+#### Get Files
+```http
+GET /api/files?path=<directory_path>
+Authorization: Bearer <token>
+
+Query Parameters:
+- path: Directory path to list files from
+- search: Search query (optional)
+- searchType: "name" | "metadata" | "all" (optional)
+- metadata: JSON object for metadata search (optional)
+```
+
+#### Download File
+```http
+GET /api/files/download?path=<file_path>
+Authorization: Bearer <token>
+
+Query Parameters:
+- path: Path of the file to download
+```
+
+#### Delete File
+```http
+DELETE /api/files?path=<file_path>
+Authorization: Bearer <token>
+
+Query Parameters:
+- path: Path of the file to delete
+```
+
+### Permission Management
+
+#### Set Permissions
+```http
+POST /api/permissions/set
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+    "path": "file/or/directory/path",
+    "accessType": "private|public|shared",
+    "sharedWith": [
+        {
+            "email": "user@example.com",
+            "permissions": {
+                "read": true,
+                "write": false,
+                "delete": false
+            }
+        }
+    ]
+}
+```
+
+#### Get Permissions
+```http
+GET /api/permissions?path=<file_path>
+Authorization: Bearer <token>
+
+Query Parameters:
+- path: Path of the file/directory to get permissions for
+```
+
+#### Remove Access
+```http
+DELETE /api/permissions
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+    "path": "file/or/directory/path",
+    "userId": "user_id_to_remove"
+}
+```
+
+#### Get Shared Items
+```http
+GET /api/permissions/shared
+Authorization: Bearer <token>
+```
+
+### Version Control
+
+#### Get File Versions
+```http
+GET /api/files/versions?path=<file_path>
+Authorization: Bearer <token>
+
+Query Parameters:
+- path: Path of the file to get versions for
+```
+
+#### Rollback Version
+```http
+POST /api/files/versions/:version/rollback?path=<file_path>
+Authorization: Bearer <token>
+
+Query Parameters:
+- path: Path of the file to rollback
+- version: Version number to rollback to
+```
+
+#### Delete Version
+```http
+DELETE /api/files/versions/:version?path=<file_path>
+Authorization: Bearer <token>
+
+Query Parameters:
+- path: Path of the file
+- version: Version number to delete
+```
+
+### Metadata Operations
+
+#### Search by Metadata
+```http
+GET /api/files/search
+Authorization: Bearer <token>
+
+Query Parameters:
+- metadata: JSON object containing metadata search criteria
+Example: ?metadata={"type":"document","status":"draft"}
+```
+
+#### Update Metadata
+```http
+PUT /api/files/metadata
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+    "path": "file/path",
+    "metadata": {
+        "type": "document",
+        "status": "draft",
+        "tags": ["important", "project"],
+        "customField": "value"
+    }
+}
+```
+
+#### Get Metadata
+```http
+GET /api/files/metadata?path=<file_path>
+Authorization: Bearer <token>
+
+Query Parameters:
+- path: Path of the file to get metadata for
+```
+
+## Response Formats
+
+### Success Response
+```json
+{
+    "message": "Operation successful",
+    "data": {
+        // Response data specific to the operation
+    }
+}
+```
+
+### Error Response
+```json
+{
+    "error": "Error message",
+    "details": "Detailed error information (if available)"
+}
+```
+
+## Common HTTP Status Codes
+
+- 200: Success
+- 201: Created
+- 400: Bad Request
+- 401: Unauthorized
+- 403: Forbidden
+- 404: Not Found
+- 500: Internal Server Error
 
 ## Project Structure
 
