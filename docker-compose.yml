@@ -2,14 +2,13 @@ version: '3.8'
 
 services:
   app:
-    build: .
+    image: shubhangi2607/simple-cloud-storage:latest
     ports:
-      - "3000:3000"
-    environment:
-      - MONGODB_URI=mongodb://mongodb:27017/simple-cloud-storage
-      - PORT=3000
+      - "3001:3000"
     volumes:
-      - ./uploads:/usr/src/app/uploads
+      - ./uploads:/app/uploads
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/cloud-storage
     depends_on:
       - mongodb
 
