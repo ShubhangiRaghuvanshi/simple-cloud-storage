@@ -1,14 +1,15 @@
 # Use Node.js LTS version
 FROM node:18-alpine
 
-# Create app directory
-WORKDIR /usr/src/app
+WORKDIR /app
 
-# Install app dependencies
+# Copy package files
 COPY package*.json ./
+
+# Install dependencies
 RUN npm install
 
-# Bundle app source
+# Copy source code
 COPY . .
 
 # Create uploads directory

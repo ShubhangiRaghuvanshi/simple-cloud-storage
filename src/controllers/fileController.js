@@ -403,57 +403,14 @@ const uploadFile = async (req, res) => {
         });
 
         let version = 1;
-
         if (existingFile) {
-            // Get the latest version number
-            const latestVersion = await FileVersion.findOne({ fileId: existingFile._id })
-                .sort({ version: -1 })
-                .select('version');
-            
-            version = latestVersion ? latestVersion.version + 1 : existingFile.currentVersion + 1;
-            
-            // Create version record for the previous version
-            const fileVersion = new FileVersion({
-                fileId: existingFile._id,
-                version: existingFile.currentVersion,
-                path: normalizedPath,
-                size: existingFile.size,
-                mimeType: existingFile.mimeType,
-                storageKey: existingFile.storageKey,
-                createdBy: existingFile.owner,
-                metadata: existingFile.metadata
-            });
-
-            try {
-                await fileVersion.save();
-            } catch (error) {
-                // If version already exists, skip creating it
-                if (error.code === 11000) {
-                    console.log('Version record already exists, skipping creation');
-                } else {
-                    throw error;
-                }
-            }
-
-            // Update existing file
+            version = existingFile.totalVersions + 1;
             existingFile.currentVersion = version;
             existingFile.totalVersions = version;
             existingFile.size = file.size;
             existingFile.mimeType = file.mimetype;
             existingFile.storageKey = file.originalname;
-            existingFile.updatedAt = Date.now();
             await existingFile.save();
-
-            console.log('Updated existing file:', {
-                path: existingFile.path,
-                version: existingFile.currentVersion
-            });
-
-            return res.json({
-                message: 'File version created successfully',
-                file: existingFile,
-                version
-            });
         }
 
         // Create new file
@@ -511,7 +468,7 @@ const uploadFile = async (req, res) => {
 const downloadFile = async (req, res) => {
     try {
         const { path: filePath } = req.query;
-        const userId = req.user.id;
+        const userId = req.user.userId;
 
         console.log('Download request received:', {
             query: req.query,
@@ -543,13 +500,21 @@ const downloadFile = async (req, res) => {
         }
 
         try {
-            // Get file stream
-            const fileStream = getFileStream(file.storageKey);
+            // Get the full path of the file
+            const fullPath = path.join(uploadDir, filePath);
             
+            if (!fs.existsSync(fullPath)) {
+                console.log('File not found in storage:', fullPath);
+                return res.status(404).json({ error: 'File not found in storage' });
+            }
+
             // Set appropriate headers
             res.setHeader('Content-Type', file.mimeType);
             res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.name)}"`);
             res.setHeader('Content-Length', file.size);
+            
+            // Create and pipe the file stream
+            const fileStream = fs.createReadStream(fullPath);
             
             // Handle stream errors
             fileStream.on('error', (error) => {
@@ -578,7 +543,7 @@ const downloadFile = async (req, res) => {
 const deleteItem = async (req, res) => {
     try {
         const { path: filePath } = req.query;
-        const userId = req.user.id;
+        const userId = req.user.userId;
 
         // Normalize path for lookup
         const normalizedPath = filePath.replace(/\\/g, '/');
@@ -614,7 +579,7 @@ const deleteItem = async (req, res) => {
 const getFileVersions = async (req, res) => {
     try {
         const { path: filePath } = req.query;
-        const userId = req.user.id;
+        const userId = req.user.userId;
 
         // Normalize path for lookup
         const normalizedPath = filePath.replace(/\\/g, '/');
@@ -647,7 +612,7 @@ const getFileVersion = async (req, res) => {
     try {
         const { path: filePath } = req.query;
         const { version } = req.params;
-        const userId = req.user.id;
+        const userId = req.user.userId;
 
         const file = await File.findOne({ path: filePath });
         if (!file) {
@@ -676,7 +641,7 @@ const rollbackVersion = async (req, res) => {
     try {
         const { path: filePath } = req.query;
         const { version } = req.params;
-        const userId = req.user.id;
+        const userId = req.user.userId;
 
         console.log('Rollback request:', { filePath, version, userId });
 
@@ -762,7 +727,7 @@ const deleteVersion = async (req, res) => {
     try {
         const { path: filePath } = req.query;
         const { version } = req.params;
-        const userId = req.user.id;
+        const userId = req.user.userId;
 
         const file = await File.findOne({ path: filePath });
         if (!file) {
@@ -802,7 +767,7 @@ const updateMetadata = async (req, res) => {
     try {
         const { path: filePath } = req.query;
         const { metadata } = req.body;
-        const userId = req.user.id;
+        const userId = req.user.userId;
 
         console.log('Updating metadata:', { filePath, metadata, userId });
 
@@ -848,7 +813,7 @@ const updateMetadata = async (req, res) => {
 const getMetadata = async (req, res) => {
     try {
         const { path: filePath } = req.query;
-        const userId = req.user.id;
+        const userId = req.user.userId;
 
         // Normalize path for lookup
         const normalizedPath = filePath.replace(/\\/g, '/');
@@ -880,7 +845,7 @@ const getMetadata = async (req, res) => {
 const searchByMetadata = async (req, res) => {
     try {
         const  query  = req.query;
-        const userId = req.user.id;
+        const userId = req.user.userId;
 
         console.log('Searching by metadata:', { query, userId });
 
