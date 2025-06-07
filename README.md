@@ -48,20 +48,147 @@ A simple cloud storage solution built with Node.js, Express, and MongoDB. This a
 
 ### Docker Deployment
 
+#### Prerequisites for Docker
+1. Install Docker Desktop:
+   - Download from [Docker's official website](https://www.docker.com/products/docker-desktop)
+   - Follow the installation instructions for your operating system
+   - For Windows users:
+     ```powershell
+     # Enable WSL 2
+     wsl --install
+     # Restart your computer after installation
+     ```
+
+2. Verify Docker installation:
+   ```bash
+   docker --version
+   docker-compose --version
+   ```
+
+#### Running with Docker
+
 1. Build and start the containers:
    ```bash
    docker-compose up --build
    ```
+   This will:
+   - Build the Node.js application container
+   - Pull and start the MongoDB container
+   - Set up the network between containers
+   - Create necessary volumes
 
-2. To run in detached mode:
+2. Run in detached mode (background):
    ```bash
    docker-compose up -d
    ```
 
-3. To stop the containers:
+3. View logs:
+   ```bash
+   # All containers
+   docker-compose logs -f
+   
+   # Specific service
+   docker-compose logs -f app
+   ```
+
+4. Stop the containers:
    ```bash
    docker-compose down
    ```
+
+#### Docker Commands Reference
+
+```bash
+# Rebuild containers
+docker-compose build
+
+# Start containers
+docker-compose up
+
+# Stop containers
+docker-compose down
+
+# View running containers
+docker-compose ps
+
+# Execute command in container
+docker-compose exec app npm install <package>
+
+# View container logs
+docker-compose logs -f
+
+# Remove all containers and volumes
+docker-compose down -v
+```
+
+#### Docker Troubleshooting
+
+1. **Container fails to start**
+   ```bash
+   # Check logs
+   docker-compose logs app
+   
+   # Rebuild without cache
+   docker-compose build --no-cache
+   ```
+
+2. **MongoDB connection issues**
+   - Ensure MongoDB container is running: `docker-compose ps`
+   - Check MongoDB logs: `docker-compose logs mongodb`
+   - Verify network: `docker network ls`
+
+3. **Permission issues with uploads**
+   ```bash
+   # Fix permissions on uploads directory
+   docker-compose exec app chown -R node:node /usr/src/app/uploads
+   ```
+
+4. **Container cleanup**
+   ```bash
+   # Remove all containers and volumes
+   docker-compose down -v
+   
+   # Remove all images
+   docker-compose down --rmi all
+   ```
+
+#### Docker Environment Variables
+
+The following environment variables can be set in the `docker-compose.yml` file:
+
+```yaml
+environment:
+  - MONGODB_URI=mongodb://mongodb:27017/simple-cloud-storage
+  - PORT=3000
+  - JWT_SECRET=your_jwt_secret
+```
+
+#### Docker Volumes
+
+The application uses the following volumes:
+- `./uploads:/usr/src/app/uploads` - For persistent file storage
+- `mongodb_data:/data/db` - For MongoDB data persistence
+
+#### Docker Network
+
+The application uses a default Docker network created by docker-compose. The services can communicate using their service names:
+- Application service: `app`
+- MongoDB service: `mongodb`
+
+#### Docker Health Checks
+
+To check if the services are running properly:
+
+```bash
+# Check container status
+docker-compose ps
+
+# Check application logs
+docker-compose logs app
+
+# Check MongoDB logs
+docker-compose logs mongodb
+```
 
 ## API Endpoints
 
