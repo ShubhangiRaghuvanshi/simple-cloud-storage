@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const {
     getAllFiles,
     createDirectory,
@@ -21,11 +22,17 @@ const {
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         const uploadDir = path.join(__dirname, '../../uploads');
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
         console.log('Upload directory:', uploadDir);
         cb(null, uploadDir);
     },
     filename: function (req, file, cb) {
-        cb(null, Date.now() + '-' + file.originalname);
+        const timestamp = Date.now();
+        const randomString = Math.round(Math.random() * 1E9);
+        const extension = path.extname(file.originalname);
+        cb(null, `${timestamp}-${randomString}${extension}`);
     }
 });
 
@@ -44,12 +51,7 @@ const upload = multer({
 });
 
 // Routes
-router.get('/', (req, res) => {
-    res.json({ message: 'Welcome to Simple Cloud Storage API' });
-});
-
-// List files and directories
-router.get('/files', getAllFiles);
+router.get('/', getAllFiles);
 
 // Create new directory
 router.post('/directories', createDirectory);
