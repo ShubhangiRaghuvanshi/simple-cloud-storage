@@ -1,316 +1,264 @@
 # Simple Cloud Storage
 
-A secure and efficient cloud storage solution built with Node.js, Express, and MongoDB. This application provides a robust file storage system with features like file versioning, metadata management, and granular access control.
+A simple cloud storage solution built with Node.js, Express, and MongoDB. This application provides file storage, versioning, and metadata management capabilities.
 
 ## Features
 
-- 🔐 **Secure Authentication**: JWT-based authentication system
-- 📁 **File Management**:
-  - Upload and download files
-  - Create directories
-  - File versioning
-  - Metadata management
-- 🔒 **Access Control**:
-  - Granular permissions system
-  - Private and public file sharing
-  - User-specific access controls
-- 🔄 **Version Control**:
-  - Track file versions
-  - Rollback to previous versions
-  - Version history management
-- 📊 **Metadata Support**:
-  - Custom metadata for files
-  - Metadata-based search
-  - File categorization
+- File upload and download
+- Directory management
+- File versioning
+- Metadata management
+- User authentication
+- Permission management
+- Search functionality
+- Docker support
 
 ## Prerequisites
 
 - Node.js (v14 or higher)
 - MongoDB
-- npm or yarn
+- Docker and Docker Compose (for containerized deployment)
 
 ## Installation
 
+### Local Development
+
 1. Clone the repository:
-```bash
-git clone https://github.com/ShubhangiRaghuvanshi/simple-cloud-storage.git
-cd simple-cloud-storage
-```
+   ```bash
+   git clone https://github.com/yourusername/simple-cloud-storage.git
+   cd simple-cloud-storage
+   ```
 
 2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Create a `.env` file in the root directory:
+   ```
+   MONGODB_URI=mongodb://localhost:27017/simple-cloud-storage
+   PORT=3000
+   JWT_SECRET=your_jwt_secret
+   ```
+
+4. Start the application:
+   ```bash
+   npm start
+   ```
+
+### Docker Deployment
+
+#### Prerequisites for Docker
+1. Install Docker Desktop:
+   - Download from [Docker's official website](https://www.docker.com/products/docker-desktop)
+   - Follow the installation instructions for your operating system
+   - For Windows users:
+     ```powershell
+     # Enable WSL 2
+     wsl --install
+     # Restart your computer after installation
+     ```
+
+2. Verify Docker installation:
+   ```bash
+   docker --version
+   docker-compose --version
+   ```
+
+#### Running with Docker
+
+1. Build and start the containers:
+   ```bash
+   docker-compose up --build
+   ```
+   This will:
+   - Build the Node.js application container
+   - Pull and start the MongoDB container
+   - Set up the network between containers
+   - Create necessary volumes
+
+2. Run in detached mode (background):
+   ```bash
+   docker-compose up -d
+   ```
+
+3. View logs:
+   ```bash
+   # All containers
+   docker-compose logs -f
+   
+   # Specific service
+   docker-compose logs -f app
+   ```
+
+4. Stop the containers:
+   ```bash
+   docker-compose down
+   ```
+
+#### Docker Commands Reference
+
 ```bash
-npm install
+# Rebuild containers
+docker-compose build
+
+# Start containers
+docker-compose up
+
+# Stop containers
+docker-compose down
+
+# View running containers
+docker-compose ps
+
+# Execute command in container
+docker-compose exec app npm install <package>
+
+# View container logs
+docker-compose logs -f
+
+# Remove all containers and volumes
+docker-compose down -v
 ```
 
-3. Create a `.env` file in the root directory with the following variables:
-```env
-PORT=3000
-MONGODB_URI=mongodb://localhost:27017/simple-cloud-storage
-JWT_SECRET=your_jwt_secret
+#### Docker Troubleshooting
+
+1. **Container fails to start**
+   ```bash
+   # Check logs
+   docker-compose logs app
+   
+   # Rebuild without cache
+   docker-compose build --no-cache
+   ```
+
+2. **MongoDB connection issues**
+   - Ensure MongoDB container is running: `docker-compose ps`
+   - Check MongoDB logs: `docker-compose logs mongodb`
+   - Verify network: `docker network ls`
+
+3. **Permission issues with uploads**
+   ```bash
+   # Fix permissions on uploads directory
+   docker-compose exec app chown -R node:node /usr/src/app/uploads
+   ```
+
+4. **Container cleanup**
+   ```bash
+   # Remove all containers and volumes
+   docker-compose down -v
+   
+   # Remove all images
+   docker-compose down --rmi all
+   ```
+
+#### Docker Environment Variables
+
+The following environment variables can be set in the `docker-compose.yml` file:
+
+```yaml
+environment:
+  - MONGODB_URI=mongodb://mongodb:27017/simple-cloud-storage
+  - PORT=3000
+  - JWT_SECRET=your_jwt_secret
 ```
 
-4. Start the server:
+#### Docker Volumes
+
+The application uses the following volumes:
+- `./uploads:/usr/src/app/uploads` - For persistent file storage
+- `mongodb_data:/data/db` - For MongoDB data persistence
+
+#### Docker Network
+
+The application uses a default Docker network created by docker-compose. The services can communicate using their service names:
+- Application service: `app`
+- MongoDB service: `mongodb`
+
+#### Docker Health Checks
+
+To check if the services are running properly:
+
 ```bash
-cd src
-node index.js
+# Check container status
+docker-compose ps
+
+# Check application logs
+docker-compose logs app
+
+# Check MongoDB logs
+docker-compose logs mongodb
 ```
 
-## API Documentation
+## API Endpoints
 
 ### Authentication
 - `POST /api/auth/register` - Register a new user
 - `POST /api/auth/login` - Login user
-- `GET /api/auth/profile` - Get user profile
 
-### File Operations
+### Files
+- `GET /api/files` - List files and directories
+- `POST /api/files/upload` - Upload a file
+- `GET /api/files/download` - Download a file
+- `DELETE /api/files` - Delete a file or directory
+- `POST /api/files/directories` - Create a new directory
 
-#### Create Directory
-```http
-POST /api/files/directories
-Content-Type: application/json
-Authorization: Bearer <token>
+### Versioning
+- `GET /api/files/versions` - Get file versions
+- `GET /api/files/versions/:version` - Get specific version
+- `POST /api/files/versions/:version/rollback` - Rollback to version
+- `DELETE /api/files/versions/:version` - Delete version
 
-{
-    "path": "parent/directory",
-    "name": "new-directory"
-}
-```
+### Metadata
+- `PATCH /api/files/metadata` - Update file metadata
+- `GET /api/files/metadata` - Get file metadata
+- `GET /api/files/search` - Search files by metadata
 
-#### Upload File
-```http
-POST /api/files/upload
-Content-Type: multipart/form-data
-Authorization: Bearer <token>
-
-Form Data:
-- file: <file>
-- path: "target/directory"
-```
-
-#### Get Files
-```http
-GET /api/files?path=<directory_path>
-Authorization: Bearer <token>
-
-Query Parameters:
-- path: Directory path to list files from
-- search: Search query (optional)
-- searchType: "name" | "metadata" | "all" (optional)
-- metadata: JSON object for metadata search (optional)
-```
-
-#### Download File
-```http
-GET /api/files/download?path=<file_path>
-Authorization: Bearer <token>
-
-Query Parameters:
-- path: Path of the file to download
-```
-
-#### Delete File
-```http
-DELETE /api/files?path=<file_path>
-Authorization: Bearer <token>
-
-Query Parameters:
-- path: Path of the file to delete
-```
-
-### Permission Management
-
-#### Set Permissions
-```http
-POST /api/permissions/set
-Content-Type: application/json
-Authorization: Bearer <token>
-
-{
-    "path": "file/or/directory/path",
-    "accessType": "private|public|shared",
-    "sharedWith": [
-        {
-            "email": "user@example.com",
-            "permissions": {
-                "read": true,
-                "write": false,
-                "delete": false
-            }
-        }
-    ]
-}
-```
-
-#### Get Permissions
-```http
-GET /api/permissions?path=<file_path>
-Authorization: Bearer <token>
-
-Query Parameters:
-- path: Path of the file/directory to get permissions for
-```
-
-#### Remove Access
-```http
-DELETE /api/permissions
-Content-Type: application/json
-Authorization: Bearer <token>
-
-{
-    "path": "file/or/directory/path",
-    "userId": "user_id_to_remove"
-}
-```
-
-#### Get Shared Items
-```http
-GET /api/permissions/shared
-Authorization: Bearer <token>
-```
-
-### Version Control
-
-#### Get File Versions
-```http
-GET /api/files/versions?path=<file_path>
-Authorization: Bearer <token>
-
-Query Parameters:
-- path: Path of the file to get versions for
-```
-
-#### Rollback Version
-```http
-POST /api/files/versions/:version/rollback?path=<file_path>
-Authorization: Bearer <token>
-
-Query Parameters:
-- path: Path of the file to rollback
-- version: Version number to rollback to
-```
-
-#### Delete Version
-```http
-DELETE /api/files/versions/:version?path=<file_path>
-Authorization: Bearer <token>
-
-Query Parameters:
-- path: Path of the file
-- version: Version number to delete
-```
-
-### Metadata Operations
-
-#### Search by Metadata
-```http
-GET /api/files/search
-Authorization: Bearer <token>
-
-Query Parameters:
-- metadata: JSON object containing metadata search criteria
-Example: ?metadata={"type":"document","status":"draft"}
-```
-
-#### Update Metadata
-```http
-PUT /api/files/metadata
-Content-Type: application/json
-Authorization: Bearer <token>
-
-{
-    "path": "file/path",
-    "metadata": {
-        "type": "document",
-        "status": "draft",
-        "tags": ["important", "project"],
-        "customField": "value"
-    }
-}
-```
-
-#### Get Metadata
-```http
-GET /api/files/metadata?path=<file_path>
-Authorization: Bearer <token>
-
-Query Parameters:
-- path: Path of the file to get metadata for
-```
-
-## Response Formats
-
-### Success Response
-```json
-{
-    "message": "Operation successful",
-    "data": {
-        // Response data specific to the operation
-    }
-}
-```
-
-### Error Response
-```json
-{
-    "error": "Error message",
-    "details": "Detailed error information (if available)"
-}
-```
-
-## Common HTTP Status Codes
-
-- 200: Success
-- 201: Created
-- 400: Bad Request
-- 401: Unauthorized
-- 403: Forbidden
-- 404: Not Found
-- 500: Internal Server Error
-
-## Project Structure
+## File Structure
 
 ```
 simple-cloud-storage/
 ├── src/
-│   ├── controllers/     # Request handlers
-│   ├── middleware/      # Custom middleware
-│   ├── models/         # Database models
-│   ├── routes/         # API routes
-│   ├── utils/          # Utility functions
-│   └── index.js        # Application entry point
-├── uploads/            # File storage directory
-├── .env               # Environment variables
-├── .gitignore        # Git ignore file
-└── package.json      # Project dependencies
+│   ├── controllers/
+│   │   ├── fileController.js
+│   │   └── authController.js
+│   ├── models/
+│   │   ├── File.js
+│   │   ├── FileVersion.js
+│   │   └── Permission.js
+│   ├── routes/
+│   │   ├── fileRoutes.js
+│   │   └── authRoutes.js
+│   ├── middleware/
+│   │   └── auth.js
+│   ├── utils/
+│   │   └── storage.js
+│   └── index.js
+├── uploads/
+├── Dockerfile
+├── docker-compose.yml
+├── package.json
+└── README.md
 ```
 
-## Security Features
+## Environment Variables
 
-- JWT-based authentication
-- Password hashing
-- File access control
-- Secure file storage
-- Environment variable protection
+- `MONGODB_URI`: MongoDB connection string
+- `PORT`: Application port (default: 3000)
+- `JWT_SECRET`: Secret key for JWT token generation
 
 ## Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Author
+## Support
 
-Shubhangi Raghuvanshi
-
-## Acknowledgments
-
-- Express.js
-- MongoDB
-- JWT
-- Node.js 
+For support, email your-email@example.com or open an issue in the GitHub repository. 

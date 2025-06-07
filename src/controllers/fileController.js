@@ -255,9 +255,9 @@ const getAllFiles = async (req, res) => {
                 const query = searchQuery.toLowerCase();
                 filteredContents = filteredContents.filter(item => {
                     if (searchType === 'name' || searchType === 'all') {
-                        const nameMatch = item.name.toLowerCase().includes(query);
-                        const extensionMatch = item.extension && item.extension.toLowerCase().includes(query);
-                        const typeMatch = item.type.toLowerCase().includes(query);
+                    const nameMatch = item.name.toLowerCase().includes(query);
+                    const extensionMatch = item.extension && item.extension.toLowerCase().includes(query);
+                    const typeMatch = item.type.toLowerCase().includes(query);
                         if (nameMatch || extensionMatch || typeMatch) return true;
                     }
                     
@@ -355,12 +355,17 @@ const uploadFile = async (req, res) => {
     try {
         const { path: filePath } = req.body;
         const file = req.file;
-        const userId = req.user.id;
+        const userId = req.user.userId;
 
         console.log('Upload request details:', {
             filePath,
             fileName: file?.originalname,
-            userId
+            userId,
+            file: file ? {
+                path: file.path,
+                size: file.size,
+                mimetype: file.mimetype
+            } : null
         });
 
         if (!file) {
@@ -377,11 +382,18 @@ const uploadFile = async (req, res) => {
         console.log('Path details:', {
             originalPath: filePath,
             fileName: file.originalname,
-            normalizedPath
+            normalizedPath,
+            filePath: file.path
         });
 
-        // Upload to storage with target directory
-        const storageKey = await uploadToStorage(file, filePath);
+        // Move file to target directory
+        const targetDir = path.join(uploadDir, filePath);
+        if (!fs.existsSync(targetDir)) {
+            fs.mkdirSync(targetDir, { recursive: true });
+        }
+
+        const targetPath = path.join(targetDir, file.originalname);
+        await fs.promises.rename(file.path, targetPath);
 
         // Check if file already exists
         let existingFile = await File.findOne({ path: normalizedPath });
@@ -428,7 +440,7 @@ const uploadFile = async (req, res) => {
             existingFile.totalVersions = version;
             existingFile.size = file.size;
             existingFile.mimeType = file.mimetype;
-            existingFile.storageKey = storageKey;
+            existingFile.storageKey = file.originalname;
             existingFile.updatedAt = Date.now();
             await existingFile.save();
 
@@ -450,7 +462,7 @@ const uploadFile = async (req, res) => {
             path: normalizedPath,
             size: file.size,
             mimeType: file.mimetype,
-            storageKey,
+            storageKey: file.originalname,
             owner: userId,
             currentVersion: version,
             totalVersions: version
@@ -470,7 +482,7 @@ const uploadFile = async (req, res) => {
             path: normalizedPath,
             size: file.size,
             mimeType: file.mimetype,
-            storageKey,
+            storageKey: file.originalname,
             createdBy: userId
         });
 
@@ -492,7 +504,7 @@ const uploadFile = async (req, res) => {
         });
     } catch (error) {
         console.error('Error uploading file:', error);
-        res.status(500).json({ error: 'Error uploading file' });
+        res.status(500).json({ error: 'Error uploading file', details: error.message });
     }
 };
 
